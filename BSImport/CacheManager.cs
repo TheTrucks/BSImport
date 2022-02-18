@@ -11,7 +11,6 @@ namespace BSImport
     {
         static CacheManager()
         {
-            ReadWriting = false;
             CachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cache.ff");
         }
 
