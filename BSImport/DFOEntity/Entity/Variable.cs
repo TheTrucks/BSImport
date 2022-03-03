@@ -10,5 +10,8 @@ namespace BSImport.DFOEntity.Entity
     {
         public virtual int Id { get; set; }
         public virtual string Name { get; set; }
+        public virtual IList<MeteoData> MeteoData { get; set; }
+        public virtual IList<ForecastData> ForecastData { get; set; }
+        public virtual IList<VarCode> VarCodes { get; set; }
     }
 }

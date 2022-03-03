@@ -15,6 +15,7 @@ namespace BSImport.DFOEntity.Mappings
             Table("amur_dfo.attribute");
             Id(x => x.Id);
             Map(x => x.Name);
+            HasMany(x => x.AttrValues).Cascade.All();
         }
     }
 }

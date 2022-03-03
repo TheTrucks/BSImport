@@ -15,6 +15,7 @@ namespace BSImport.DFOEntity.Mappings
             Table("amur_dfo.station_type");
             Id(x => x.Id);
             Map(x => x.Name);
+            HasMany(x => x.Stations).Cascade.All().Inverse();
         }
     }
 }

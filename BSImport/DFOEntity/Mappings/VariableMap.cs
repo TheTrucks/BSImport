@@ -15,6 +15,9 @@ namespace BSImport.DFOEntity.Mappings
             Table("amur_dfo.variable");
             Id(x => x.Id);
             Map(x => x.Name);
+            HasMany(x => x.MeteoData).Cascade.All().Inverse();
+            HasMany(x => x.ForecastData).Cascade.All().Inverse();
+            HasMany(x => x.VarCodes).Cascade.All().Inverse();
         }
     }
 }

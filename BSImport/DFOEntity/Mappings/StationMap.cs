@@ -21,6 +21,9 @@ namespace BSImport.DFOEntity.Mappings
             Map(x => x.Latitude);
             Map(x => x.Longtitude, "longitude");
             References(x => x.Region, "region_id");
+            HasMany(x => x.MeteoData).Cascade.All().Inverse();
+            HasMany(x => x.ForecastData).Cascade.All().Inverse();
+            HasMany(x => x.AttrValues).Cascade.All().Inverse();
         }
     }
 }

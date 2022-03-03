@@ -19,6 +19,7 @@ namespace BSImport.DFOEntity.Mappings
             References(x => x.AddrType, "addr_type_id");
             References(x => x.Parent, "parent_id");
             Map(x => x.UTCOffset, "utc_offset");
+            HasMany(x => x.Stations).Cascade.All().Inverse();
         }
     }
 }

@@ -14,5 +14,6 @@ namespace BSImport.DFOEntity.Entity
         public virtual AddrType AddrType { get; set; }
         public virtual Addr Parent { get; set; }
         public virtual int? UTCOffset { get; set; }
+        public virtual IList<Station> Stations { get; set; }
     }
 }

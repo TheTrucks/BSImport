@@ -136,7 +136,7 @@ namespace BSImport
 
             public int GetHashCode(DFO.MeteoData Value)
             {
-                return Value.DateUtc.GetHashCode() - (Value.Station.Id ^ Value.Variable.Id) + ((int)Value.OffsetValue * Value.OffsetType.Id);
+                return Value.DateUtc.GetHashCode() - (Value.Station.Id ^ Value.Variable.Id) + (int)(Value.OffsetValue * Value.OffsetType.Id.Value);
             }
         }
     }

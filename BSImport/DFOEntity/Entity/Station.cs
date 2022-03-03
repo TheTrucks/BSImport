@@ -22,5 +22,9 @@ namespace BSImport.DFOEntity.Entity
         public virtual double? Longtitude { get; set; }
         public virtual double? Latitude { get; set; }
         public virtual Addr Region { get; set; }
-}
+
+        public virtual IList<MeteoData> MeteoData { get; set; }
+        public virtual IList<ForecastData> ForecastData { get; set; }
+        public virtual IList<AttrValue> AttrValues { get; set; }
+    }
 }

@@ -16,6 +16,7 @@ namespace BSImport.DFOEntity.Mappings
             Id(x => x.Id);
             Map(x => x.Name);
             Map(x => x.NameShort, "name_short");
+            HasMany(x => x.Addrs).Cascade.All().Inverse();
         }
     }
 }
