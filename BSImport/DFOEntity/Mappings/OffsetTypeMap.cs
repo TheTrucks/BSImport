@@ -15,6 +15,7 @@ namespace BSImport.DFOEntity.Mappings
             Table("amur_dfo.offset_type");
             Id(x => x.Id);
             Map(x => x.Name);
+            Map(x => x.Unit_id);
             HasMany(x => x.MeteoData).Cascade.All().Inverse();
         }
     }

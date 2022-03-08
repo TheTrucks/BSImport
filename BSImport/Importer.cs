@@ -50,8 +50,13 @@ namespace BSImport
                     var NewMeteoData = NewValues(FHRtoDFO, CurrentDataList, out UpdateMeteoData);
                     LogManager.Log.Info($"{NewMeteoData.Count}/{FHRtoDFO.Count} new values");
                     LogManager.Log.Info($"{UpdateMeteoData.Count}/{FHRtoDFO.Count} updates");
+                    var stations_id = new List<int>();
                     foreach (var MeteoItem in NewMeteoData)
+                    {
+                        stations_id.Add(MeteoItem.Station.Id);
                         AltSession.Save(MeteoItem);
+                        System.Console.WriteLine("Информация по станции id="+MeteoItem.Station.Id +" за срок "+MeteoItem.DateUtc + " успешно добавлена.");
+                    }                        
                     foreach (var MeteoItem in UpdateMeteoData)
                         AltSession.Update(MeteoItem);
 
