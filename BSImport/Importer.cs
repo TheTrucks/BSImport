@@ -11,6 +11,7 @@ namespace BSImport
 {
     public class Importer
     {
+        //HashSet<ValueTuple<string, int, int>> DebugSet = new HashSet<(string, int, int)>(); // to catch bad stations
         public void StartImport()
         {
             var Since = CacheManager.LastDateTime.AddHours(-1);
@@ -44,21 +45,23 @@ namespace BSImport
                 {
                     var CurrentDataList = AmurDFOWorker.MeteoDataList(AltSession, Since, To);
 
-                    List<DFO.MeteoData> UpdateMeteoData;
                     var FHRtoDFO = Transmute(InitialDVList, StationList);
                     LogManager.Log.Info($"Transmuted {FHRtoDFO.Count}/{InitialDVList.Count}");
+
+                    List<DFO.MeteoData> UpdateMeteoData;
                     var NewMeteoData = NewValues(FHRtoDFO, CurrentDataList, out UpdateMeteoData);
                     LogManager.Log.Info($"{NewMeteoData.Count}/{FHRtoDFO.Count} new values");
                     LogManager.Log.Info($"{UpdateMeteoData.Count}/{FHRtoDFO.Count} updates");
-                    var stations_id = new List<int>();
+
                     foreach (var MeteoItem in NewMeteoData)
                     {
-                        stations_id.Add(MeteoItem.Station.Id);
                         AltSession.Save(MeteoItem);
                         System.Console.WriteLine("Информация по станции id="+MeteoItem.Station.Id +" за срок "+MeteoItem.DateUtc + " успешно добавлена.");
-                    }                        
+                    }
                     foreach (var MeteoItem in UpdateMeteoData)
-                        AltSession.Update(MeteoItem);
+                    { 
+                        AltSession.Update(MeteoItem); 
+                    }
 
                     try
                     {
@@ -66,7 +69,7 @@ namespace BSImport
                     }
                     catch (Exception Exc)
                     {
-                        LogManager.Log.Error("An error occured trying to commit transaction:");
+                        LogManager.Log.Error($"[{Since.ToString("yyyy-MM-dd HH:mm")}][{To.ToString("yyyy-MM-dd HH:mm")}]An error occured trying to commit transaction:");
                         LogManager.Log.Error(Exc.ToString());
                     }
                 }
@@ -76,24 +79,52 @@ namespace BSImport
         private List<DFO.MeteoData> NewValues(List<DFO.MeteoData> InputList, List<DFO.MeteoData> FilterList, out List<DFO.MeteoData> Updates)
         {
             var Comparer = new MeteoDataComparer();
-            var NewValues = InputList.Except(FilterList, Comparer).ToList();
-            Updates = InputList.Except(NewValues, Comparer).ToList();
+            List<DFO.MeteoData> NewValues = new List<DFO.MeteoData>();
+
+            HashSet<DFO.MeteoData> Set = new HashSet<DFO.MeteoData>(Comparer);
+            Updates = new List<DFO.MeteoData>();
+
+            foreach (var Element in FilterList)
+                Set.Add(Element);
+
+            foreach (var Element in InputList)
+            {
+                if (!Set.Contains(Element))
+                    NewValues.Add(Element);
+                else
+                {
+                    var TmpMeteo = FilterList.First(x => Comparer.Equals(x, Element));
+                    if (TmpMeteo.Value != Element.Value)
+                    {
+                        TmpMeteo.Value = Element.Value;
+                        Updates.Add(TmpMeteo);
+                    }
+                }
+            }                
+
             return NewValues;
         }
 
         private List<DFO.MeteoData> Transmute (List<FHR.Data.DataValue> InputList, List<DFO.Station> StationFilter)
         {
-            HashSet<ValueTuple<string, int>> StationsHash = new HashSet<ValueTuple<string, int>>();
+            HashSet<ValueTuple<string, int, int>> StationsHash = new HashSet<ValueTuple<string, int, int>>();
             foreach (var Station in StationFilter)
-                StationsHash.Add(new ValueTuple<string, int>(Station.Code, Station.StationType.Id));
+                StationsHash.Add(new ValueTuple<string, int, int>(Station.Code, Station.Id, Station.StationType.Id));
 
             List<DFO.MeteoData> Result = new List<DFO.MeteoData>();
             foreach (var Input in InputList)
             {
-                if (StationsHash.Contains(new ValueTuple<string, int> (Input.Catalog.Site.Station.Code, Input.Catalog.Site.Type.Id.Value)))
+                if (StationsHash.Contains(new ValueTuple<string, int, int>(Input.Catalog.Site.Station.Code, Input.Catalog.Site.Id.Value, Input.Catalog.Site.Type.Id.Value)))
                 {
                     Result.Add(TransmuteOne(Input));
                 }
+                // to catch bad stations:
+                //else
+                //{
+                //    if (StationFilter.FirstOrDefault(x => x.Code == Input.Catalog.Site.Station.Code && x.StationType.Id == Input.Catalog.Site.Type.Id.Value) != null)
+                //        if (DebugSet.Add(new ValueTuple<string, int, int>(Input.Catalog.Site.Station.Code, Input.Catalog.Site.Id.Value, Input.Catalog.Site.Type.Id.Value)))
+                //            LogManager.Log.Debug($"[{Input.Catalog.Site.Id.Value}] {Input.Catalog.Site.Station.Code}: {Input.Catalog.Site.Type.Id.Value}; ");
+                //}
             }
             return Result;
         }
