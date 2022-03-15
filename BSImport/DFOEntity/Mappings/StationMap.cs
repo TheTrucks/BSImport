@@ -13,7 +13,7 @@ namespace BSImport.DFOEntity.Mappings
         public StationMap()
         {
             Table("amur_dfo.stations");
-            Id(x => x.Id);
+            Id(x => x.Id).GeneratedBy.Sequence("amur_dfo.stations_seq"); ;
             Map(x => x.Name);
             Map(x => x.Code);
             References(x => x.StationType, "station_type_id");
@@ -21,9 +21,9 @@ namespace BSImport.DFOEntity.Mappings
             Map(x => x.Latitude);
             Map(x => x.Longtitude, "longitude");
             References(x => x.Region, "region_id");
-            HasMany(x => x.MeteoData).Cascade.All().Inverse();
+            HasMany(x => x.MeteoData).Cascade.All();
             HasMany(x => x.ForecastData).Cascade.All().Inverse();
-            HasMany(x => x.AttrValues).Cascade.All().Inverse();
+            HasMany(x => x.AttrValues).Cascade.All();
         }
     }
 }

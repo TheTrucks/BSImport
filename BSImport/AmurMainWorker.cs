@@ -12,28 +12,17 @@ using EntityNH.Hibernate;
 namespace BSImport
 {
     public static class AmurMainWorker
-    { 
-        public static List<DataValue> LoadMeteoData(IStatelessSession session, DateTime Since, DateTime To)
+    {
+        public static List<DataValue> LoadMeteoData(ISession session, DateTime Since, DateTime To, int[] MeteoVars)
         {
-            List<DataValue> Result;
-            int[] MeteoVars = System.Configuration.ConfigurationManager.AppSettings["MeteoVars"]
-                .Split(new char[] { ',' })
-                .Select(x => Int32.Parse
-                (
-                    x.Trim()
-                ))
-                .ToArray();
-            Result = session.Query<DataValue>()
-                    .Where(x => MeteoVars.Contains(x.Catalog.Variable.Id.Value) && x.DateUTC >= Since && x.DateUTC < To)
+            var DataQuery = session.Query<DataValue>()
+                    .Where(x => MeteoVars.Contains(x.Catalog.Variable.Id.Value) && new int[] { 1, 2 }.Contains(x.Catalog.Site.Type.Id.Value) && x.DateUTC >= Since && x.DateUTC < To)
                     .Fetch(x => x.Catalog)
-                    .ThenFetch(x => x.Site)
-                    .ThenFetch(x => x.Station)
-                    .ToList();
-            return Result;
-        }
-        public static List<Station> LoadStations(IStatelessSession session)
-        {
-            return null;
+                    .ThenFetch(x => x.Site);
+            DataQuery.ThenFetch(x => x.Station).ToFuture();
+            DataQuery.ThenFetchMany(x => x.AttrValues).ToFuture(); // not optimal, still ok.
+
+            return DataQuery.ToFuture().ToList();
         }
     }
 }

@@ -11,7 +11,7 @@ namespace BSImport
     {
         static void Main(string[] args)
         {
-            var Imp = new Importer(); // to support being win service with its own scheduler in the future
+            var Imp = new Importer(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "params.ff")); // to support being win service with its own scheduler in the future
             Imp.StartImport();
         }
     }

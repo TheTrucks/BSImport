@@ -110,6 +110,7 @@
     <Compile Include="LogManager.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Restrictor.cs" />
     <Compile Include="WinService.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -117,13 +118,19 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
+    <None Include="params.ff">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="restricts.ff">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="EntityNH.dll" />
-    <Content Include="EntityNH.pdb" />
-    <Content Include="FluentNHibernate.dll" />
-    <Content Include="FluentNHibernate.pdb" />
-    <Content Include="FluentNHibernate.xml" />
+    <Content Include="Dependencies\EntityNH.dll" />
+    <Content Include="Dependencies\EntityNH.pdb" />
+    <Content Include="Dependencies\FluentNHibernate.dll" />
+    <Content Include="Dependencies\FluentNHibernate.pdb" />
+    <Content Include="Dependencies\FluentNHibernate.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
