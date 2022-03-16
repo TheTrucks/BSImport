@@ -26,7 +26,7 @@ namespace BSImport
                             return DateTime.ParseExact(SR.ReadLine().Trim(), "yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
                 }
                 else
-                    return DateTime.UtcNow.AddHours(-2);
+                    return DateTime.UtcNow;
             }
             set
             {

@@ -21,8 +21,8 @@ namespace BSImport
         }
         public void StartImport()
         {
-            var Since = CacheManager.LastDateTime.AddHours(-1);
-            var Launched = DateTime.UtcNow;
+            var Since = CacheManager.LastDateTime.AddHours(-3);
+            var Launched = DateTime.UtcNow.AddMinutes(1);
 
             for (DateTime TimePiece = Since; TimePiece < Launched; TimePiece = TimePiece.AddHours(3)) // breaking big timespan into smaller pieces
             {
@@ -43,6 +43,8 @@ namespace BSImport
                         string TheLine = SR.ReadLine().Trim();
                         if (TheLine == String.Empty)
                             continue;
+                        else
+                            TheLine = TheLine.Split(new char[] { '#' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
 
                         if (TheLine.StartsWith("["))
                         {
