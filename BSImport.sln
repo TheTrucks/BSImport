@@ -5,6 +5,11 @@ VisualStudioVersion = 16.0.32002.261
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BSImport", "BSImport\BSImport.csproj", "{1CAAB07A-76E3-4596-8FE6-7377821B4BA3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleStart", "ConsoleStart\ConsoleStart.csproj", "{7C79258E-399B-4FC9-97CA-2D4DCDF22864}"
+	ProjectSection(ProjectDependencies) = postProject
+		{1CAAB07A-76E3-4596-8FE6-7377821B4BA3} = {1CAAB07A-76E3-4596-8FE6-7377821B4BA3}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +20,10 @@ Global
 		{1CAAB07A-76E3-4596-8FE6-7377821B4BA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1CAAB07A-76E3-4596-8FE6-7377821B4BA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1CAAB07A-76E3-4596-8FE6-7377821B4BA3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C79258E-399B-4FC9-97CA-2D4DCDF22864}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C79258E-399B-4FC9-97CA-2D4DCDF22864}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C79258E-399B-4FC9-97CA-2D4DCDF22864}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C79258E-399B-4FC9-97CA-2D4DCDF22864}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

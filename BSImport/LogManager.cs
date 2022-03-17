@@ -22,9 +22,9 @@ namespace BSImport
             InfoLog.FileName = "Logs/${shortdate}/info.txt";
             NlogConfig.AddRuleForOneLevel(LogLevel.Info, InfoLog);
 
-            var DebugLog = new NLog.Targets.FileTarget("DebugLog");
-            DebugLog.FileName = "Logs/${shortdate}/debug.txt";
-            NlogConfig.AddRuleForOneLevel(LogLevel.Debug, DebugLog);
+            //var DebugLog = new NLog.Targets.FileTarget("DebugLog");
+            //DebugLog.FileName = "Logs/${shortdate}/debug.txt";
+            //NlogConfig.AddRuleForOneLevel(LogLevel.Debug, DebugLog);
 
             NLog.LogManager.Configuration = NlogConfig;
             _log = NLog.LogManager.GetLogger("BSImport");

@@ -14,26 +14,35 @@ namespace BSImport
     public class Importer
     {
         private Dictionary<int, int> _VarStationType = new Dictionary<int, int>();
-        public Importer(string ConfigPath)
+        private CacheManager DateCache;
+        private string RestrictsFilename;
+        private int HoursBack;
+        public Importer(string ParamsFilename, string RestrictsFilename, string CacheFilename, int HoursBack)
         {
-            LoadVarStationTypes(ConfigPath);
-
+            LoadVarStationTypes(ParamsFilename);
+            this.RestrictsFilename = RestrictsFilename;
+            this.HoursBack = HoursBack;
+            DateCache = new CacheManager(CacheFilename);
         }
-        public void StartImport()
+        public void StartImport(string DateSince = null)
         {
-            var Since = CacheManager.LastDateTime.AddHours(-3);
-            var Launched = DateTime.UtcNow.AddMinutes(1);
+            DateTime Since;
+            if (String.IsNullOrEmpty(DateSince)
+                || !DateTime.TryParseExact(DateSince.Trim(), "yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out Since))
+            { Since = DateCache.LastDateTime.AddHours(-HoursBack); }
 
-            for (DateTime TimePiece = Since; TimePiece < Launched; TimePiece = TimePiece.AddHours(3)) // breaking big timespan into smaller pieces
+            var Launched = DateTime.UtcNow;
+
+            for (DateTime TimePiece = Since; Launched - TimePiece > TimeSpan.FromMinutes(1); TimePiece = TimePiece.AddHours(3)) // breaking big timespan into smaller pieces
             {
                 Import(TimePiece, TimePiece.AddHours(3));
             }
 
-            CacheManager.LastDateTime = Launched;
+            DateCache.LastDateTime = Launched;
         }
-        private void LoadVarStationTypes(string CPath)
+        private void LoadVarStationTypes(string PFile)
         {
-            using (var FS = File.Open(CPath, FileMode.Open))
+            using (var FS = File.Open(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, PFile), FileMode.Open))
             {
                 using (var SR = new StreamReader(FS, Encoding.UTF8))
                 {
@@ -77,6 +86,11 @@ namespace BSImport
                 InitialDVList = AmurMainWorker.LoadMeteoData(MainSession, Since, To, _VarStationType.Keys.ToArray());
                 LogManager.Log.Info($"Loaded {InitialDVList.Count} DV from AmurMain");
             }
+            if (InitialDVList.Count == 0)
+            {
+                LogManager.Log.Info("No new data were found.");
+                return;
+            }
 
             using (var AltSession = ConnectionManager.AmurDFO.OpenSession())
             {
@@ -86,11 +100,10 @@ namespace BSImport
                 AltSession.Clear();
                 using (var trans = AltSession.BeginTransaction())
                 {
-                    var CurrentDataList = AmurDFOWorker.MeteoDataList(AltSession, Since, To);
+                    List<DFO.MeteoData> CurrentDataList = AmurDFOWorker.MeteoDataList(AltSession, Since, To);
 
-                    var Transmuted = Transmute(InitialDVList, StationList);
-                    var FHRtoDFO = Transmuted.TransmutedData;
-                    LogManager.Log.Info($"Transmuted {FHRtoDFO.Count}/{InitialDVList.Count}");
+                    TransmuteData Transmuted = Transmute(InitialDVList, StationList);
+                    List<DFO.MeteoData> FHRtoDFO = Transmuted.TransmutedData;
 
                     int NewStationsDataCounter = 0;
                     if (Transmuted.NewStations != null && Transmuted.NewStations.Count > 0)
@@ -99,7 +112,7 @@ namespace BSImport
 
                         foreach (var NewStationData in Transmuted.NewStations)
                         {
-                            var TempNewStation = NewStationData.Key;
+                            DFO.Station TempNewStation = NewStationData.Key;
                             if (TempNewStation == null)
                                 continue;
                             AltSession.Save(TempNewStation);
@@ -116,8 +129,8 @@ namespace BSImport
 
                     List<DFO.MeteoData> UpdateMeteoData;
                     var NewMeteoData = NewValues(FHRtoDFO, CurrentDataList, out UpdateMeteoData);
-                    LogManager.Log.Info($"{UpdateMeteoData.Count}/{FHRtoDFO.Count} updates");
-                    LogManager.Log.Info($"{NewMeteoData.Count + NewStationsDataCounter}/{FHRtoDFO.Count} new values");
+                    if (UpdateMeteoData.Count > 0) LogManager.Log.Info($"{UpdateMeteoData.Count} updates");
+                    if (NewMeteoData.Count > 0) LogManager.Log.Info($"{NewMeteoData.Count + NewStationsDataCounter} new values");
 
                     foreach (var MeteoItem in NewMeteoData)
                     {
@@ -178,7 +191,7 @@ namespace BSImport
             ILookup<DFO.Station, FHR.Data.DataValue> NewStations = null;
             var StationComparer = new DFOStationComparer();
             var CatalogComparer = new FHRCatalogComparer();
-            var StationsRestrict = new Restrictor("restricts.ff");
+            var StationsRestrict = new Restrictor(RestrictsFilename);
 
             HashSet<ValueTuple<string, int>> StationsHash = new HashSet<ValueTuple<string, int>>();
             foreach (var Station in StationFilter)
@@ -369,6 +382,27 @@ namespace BSImport
             {
                 this.TransmutedData = TransmutedData;
                 this.NewStations = NewStations;
+            }
+        }
+    }
+
+    public class ImporterJob : Quartz.IJob
+    {
+        public async Task Execute(Quartz.IJobExecutionContext Details)
+        {
+            try
+            {
+                var ImportWorker = new Importer(
+                    Details.Trigger.JobDataMap.GetString("Params"),
+                    Details.Trigger.JobDataMap.GetString("Stations"),
+                    Details.Trigger.JobDataMap.GetString("Cache"),
+                    Details.Trigger.JobDataMap.GetInt("Hours"));
+                await Task.Run(() => ImportWorker.StartImport());
+            }
+            catch (Exception Exc)
+            {
+                LogManager.Log.Error("Job failed:");
+                LogManager.Log.Error(Exc.ToString());
             }
         }
     }

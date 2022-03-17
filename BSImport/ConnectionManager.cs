@@ -31,6 +31,12 @@ namespace BSImport
             }
         }
 
+        public static void CloseConnections()
+        {
+            _maindb.Drop();
+            _altdb.Drop();
+        }
+
         public static ISessionFactory AmurFerhri { get { return _maindb.SessionFactory; } }
         public static ISessionFactory AmurDFO { get { return _altdb.SessionFactory; } }
     }

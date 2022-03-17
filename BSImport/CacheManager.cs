@@ -7,15 +7,15 @@ using System.IO;
 
 namespace BSImport
 {
-    public static class CacheManager
+    public class CacheManager
     {
-        static CacheManager()
+        public CacheManager(string CacheFilename)
         {
-            CachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cache.ff");
+            CachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, CacheFilename);
         }
 
-        private static string CachePath;
-        public static DateTime LastDateTime
+        private string CachePath;
+        public DateTime LastDateTime
         {
             get
             {
