@@ -173,7 +173,7 @@ namespace BSImport
                 else
                 {
                     var TmpMeteo = FilterList.First(x => Comparer.Equals(x, Element));
-                    if (TmpMeteo.Value != Element.Value)
+                    if (TmpMeteo.Value.Value != Element.Value.Value)
                     {
                         TmpMeteo.Value = Element.Value;
                         Updates.Add(TmpMeteo);
@@ -203,12 +203,14 @@ namespace BSImport
                 var Input = InputGroup.Key;
                 if (!StationsRestrict.Approved(Input.Site.Station.Code, GetStationType(Input.Variable.Id.Value)))
                     continue;
+
+                var FilteredData = FilterOnItself(InputGroup.ToList());
                 if (!StationsHash.Contains(new ValueTuple<string, int>(Input.Site.Station.Code, GetStationType(Input.Variable.Id.Value))))
-                    NewStationsData.AddRange(InputGroup.ToList());
+                    NewStationsData.AddRange(FilteredData);
                 else
                 {
                     var TmpDFOStation = StationFilter.First(x => x.Code == Input.Site.Station.Code && x.StationType.Id == GetStationType(Input.Variable.Id.Value));
-                    foreach (var DataItem in InputGroup)
+                    foreach (var DataItem in FilteredData)
                         Result.Add(TransmuteOne(DataItem, TmpDFOStation));
                 }
             }
@@ -219,6 +221,17 @@ namespace BSImport
             }
 
             return new TransmuteData(Result, NewStations);
+        }
+        private List<FHR.Data.DataValue> FilterOnItself(List<FHR.Data.DataValue> InputList)
+        {
+            List<FHR.Data.DataValue> Result = new List<FHR.Data.DataValue>();
+            HashSet<ValueTuple<DateTime, int, double>> UniqueDV = new HashSet<ValueTuple<DateTime, int, double>>();
+            foreach (var Item in InputList.OrderByDescending(x => x.Id.Value))
+            {
+                if (UniqueDV.Add(new ValueTuple<DateTime, int, double>(Item.DateUTC, Item.Catalog.OffsetType.Id.Value, Item.Catalog.OffsetValue.Value)))
+                    Result.Add(Item);
+            }
+            return Result;
         }
         private DFO.Station CreateDFOStation(FHR.Data.DataValue Input)
         {
@@ -336,7 +349,10 @@ namespace BSImport
 
             public int GetHashCode(DFO.MeteoData Value)
             {
-                return Value.DateUtc.GetHashCode() + (Value.Station.Id ^ Value.Variable.Id) + (int)(Value.OffsetValue * Value.OffsetType.Id.Value);
+                unchecked
+                {
+                    return Value.DateUtc.GetHashCode() * (Value.Station.Id >> Value.Variable.Id + (int)Value.OffsetValue << Value.OffsetType.Id.Value); 
+                }
             }
         }
 
@@ -356,7 +372,7 @@ namespace BSImport
             {
                 if (Value == null)
                     return 0;
-                return Value.Code.GetHashCode() ^ 3 * Value.StationType.Id;
+                return Value.Code.GetHashCode() ^ (Value.StationType.Id * 255) >> 27;
             }
         }
 
@@ -369,7 +385,7 @@ namespace BSImport
 
             public int GetHashCode(FHR.Data.Catalog Value)
             {
-                return Value.Site.Id.Value ^ 5 * Value.Variable.Id.Value;
+                return Value.Site.Id.Value >> 27 + Value.Variable.Id.Value << 27;
             }
         }
 
