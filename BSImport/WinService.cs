@@ -40,22 +40,24 @@ namespace BSImport
         private async Task RebuildJob(CancellationToken StopToken)
         {
             await ImportSchedule.Clear(StopToken);
-            IJobDetail ImportJob = JobBuilder.Create<ImporterJob>().Build();
+            IJobDetail ImportJob = JobBuilder.Create<ImporterJob>().StoreDurably().Build();
+            await ImportSchedule.AddJob(ImportJob, true, StopToken);
 
             foreach (var Param in ReadParameters())
             {
                 try
                 {
                     ITrigger ImportTrigger = TriggerBuilder.Create()
-                        .WithIdentity("Import", "MainGroup")
+                        .WithIdentity(Param.Cache, "MainGroup")
                         .UsingJobData("Params", Param.Params)
                         .UsingJobData("Stations", Param.Stations)
                         .UsingJobData("Cache", Param.Cache)
                         .UsingJobData("Hours", Param.HoursBack)
                         .WithCronSchedule(Param.CronString)
+                        .ForJob(ImportJob)
                         .Build();
 
-                    await ImportSchedule.ScheduleJob(ImportJob, ImportTrigger, Stopper.Token);
+                    await ImportSchedule.ScheduleJob(ImportTrigger, Stopper.Token);
                     LogManager.Log.Info($"Scheduled job with parameters: CS: {Param.CronString}, P: {Param.Params}, S: {Param.Stations}, C: {Param.Cache}");
                 }
                 catch (Exception Ex)

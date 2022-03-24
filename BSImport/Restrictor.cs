@@ -28,6 +28,8 @@ namespace BSImport
                         string TheLine = SR.ReadLine().Trim();
                         if (TheLine == String.Empty)
                             continue;
+                        else
+                            TheLine = TheLine.Split(new char[] { '#' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
 
                         if (TheLine.StartsWith("["))
                         {
