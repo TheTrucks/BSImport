@@ -29,7 +29,7 @@ namespace BSImport
                         if (TheLine == String.Empty)
                             continue;
                         else
-                            TheLine = TheLine.Split(new char[] { '#' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+                            TheLine = new string(TheLine.TakeWhile(x => x != '#').ToArray()).Trim();
 
                         if (TheLine.StartsWith("["))
                         {

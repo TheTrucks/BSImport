@@ -81,8 +81,8 @@ namespace BSImport
                         if (TheLine == String.Empty || TheLine.StartsWith("#"))
                             continue;
 
-                        string[] ParamsList = TheLine
-                            .Split(new char[] { '#' }, StringSplitOptions.RemoveEmptyEntries)[0]
+                        string[] ParamsList = new string(TheLine
+                            .TakeWhile(x => x != '#').ToArray())
                             .Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(x => x.Trim()).ToArray();
                         if (ParamsList.Length >= 4)

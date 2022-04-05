@@ -6,20 +6,18 @@ using System.Threading.Tasks;
 using System.IO;
 using FHR = EntityNH.Entity;
 using DFO = BSImport.DFOEntity.Entity;
-using NHibernate.Type;
-using NHibernate.SqlCommand;
 
 namespace BSImport
 {
     public class Importer
     {
-        private Dictionary<int, int> _VarStationType = new Dictionary<int, int>();
+        private Dictionary<int, int> _VarStationType;
         private CacheManager DateCache;
         private string RestrictsFilename;
         private int HoursBack;
         public Importer(string ParamsFilename, string RestrictsFilename, string CacheFilename, int HoursBack)
         {
-            LoadVarStationTypes(ParamsFilename);
+            _VarStationType = LoadVarStationTypes(ParamsFilename);
             this.RestrictsFilename = RestrictsFilename;
             this.HoursBack = HoursBack;
             DateCache = new CacheManager(CacheFilename);
@@ -40,8 +38,9 @@ namespace BSImport
 
             DateCache.LastDateTime = Launched;
         }
-        private void LoadVarStationTypes(string PFile)
+        private Dictionary<int, int> LoadVarStationTypes(string PFile)
         {
+            Dictionary<int, int> Result = new Dictionary<int, int>();
             using (var FS = File.Open(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, PFile), FileMode.Open))
             {
                 using (var SR = new StreamReader(FS, Encoding.UTF8))
@@ -53,7 +52,7 @@ namespace BSImport
                         if (TheLine == String.Empty)
                             continue;
                         else
-                            TheLine = TheLine.Split(new char[] { '#' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+                            TheLine = new string(TheLine.TakeWhile(x => x != '#').ToArray()).Trim();
 
                         if (TheLine.StartsWith("["))
                         {
@@ -64,8 +63,8 @@ namespace BSImport
                             if (CurrentVar > 0)
                             {
                                 int TheKey = Int32.Parse(TheLine);
-                                if (!_VarStationType.ContainsKey(TheKey))
-                                    _VarStationType.Add(TheKey, CurrentVar);
+                                if (!Result.ContainsKey(TheKey))
+                                    Result.Add(TheKey, CurrentVar);
                             }
                             else
                                 continue;
@@ -74,6 +73,8 @@ namespace BSImport
                     }
                 }
             }
+
+            return Result;
         }
 
         private void Import(DateTime Since, DateTime To)
@@ -154,7 +155,13 @@ namespace BSImport
                 }
             }
         }
-
+        /// <summary>
+        /// Filters out already existing data, splits data left on new one and the one that needs to be updated (existing but with different value)
+        /// </summary>
+        /// <param name="InputList">Converted DFO DB data list</param>
+        /// <param name="FilterList">Data loaded from DFO DB</param>
+        /// <param name="Updates">Out param for the 'update data'</param>
+        /// <returns></returns>
         private List<DFO.MeteoData> NewValues(List<DFO.MeteoData> InputList, List<DFO.MeteoData> FilterList, out List<DFO.MeteoData> Updates)
         {
             var Comparer = new MeteoDataComparer();
@@ -183,7 +190,12 @@ namespace BSImport
 
             return NewValues;
         }
-
+        /// <summary>
+        /// Convert FHR DB data to DFO DB data
+        /// </summary>
+        /// <param name="InputList">FHR DB data list</param>
+        /// <param name="StationFilter">DFO DB stations list</param>
+        /// <returns>Converted data list and key-value list with key = station to add in DFO DB and value is its data list</returns>
         private TransmuteData Transmute (List<FHR.Data.DataValue> InputList, List<DFO.Station> StationFilter)
         {
             HashSet<int> NewStationsHash = new HashSet<int>();
@@ -222,6 +234,11 @@ namespace BSImport
 
             return new TransmuteData(Result, NewStations);
         }
+        /// <summary>
+        /// Filter values to deny multiple data values per hour
+        /// </summary>
+        /// <param name="InputList"></param>
+        /// <returns>Filtered FHR DB data list</returns>
         private List<FHR.Data.DataValue> FilterOnItself(List<FHR.Data.DataValue> InputList)
         {
             List<FHR.Data.DataValue> Result = new List<FHR.Data.DataValue>();
@@ -267,6 +284,11 @@ namespace BSImport
                 return null;
             }
         }
+        /// <summary>
+        /// Attempt to insert optional attribute data
+        /// </summary>
+        /// <param name="Station">DFO DB meteo station the attributes are intended for</param>
+        /// <param name="AttrList">FHR DB attributes from the corresponding station</param>
         private void AddOptAttrs(DFO.Station Station, IEnumerable<FHR.Meta.SiteAttrValue> AttrList)
         {
             Station.AttrValues = new List<DFO.AttrValue>();
@@ -305,6 +327,12 @@ namespace BSImport
                 return Double.Parse(LastOne, System.Globalization.CultureInfo.InvariantCulture);
             else return null;
         }
+        /// <summary>
+        /// Transmutes meteo data from FHR DB to corresponding DFO DB meteo data
+        /// </summary>
+        /// <param name="Input">FHR DB data to transmute</param>
+        /// <param name="Station">DFO DB meteo station for which the data is intented</param>
+        /// <returns>Transmuted DFO DB meteo data</returns>
         private DFO.MeteoData TransmuteOne(FHR.Data.DataValue Input, DFO.Station Station)
         {
             return new DFO.MeteoData
