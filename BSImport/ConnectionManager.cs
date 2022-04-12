@@ -16,28 +16,62 @@ namespace BSImport
 
         static ConnectionManager()
         {
+            InitMain();
+            InitAlt();
+        }
+
+        private static void InitMain()
+        {
             try
             {
                 _maindb = new Database();
-                    _maindb.Initialize(ConfigurationManager.AppSettings["AmurMain"], 25);
-                _altdb = new DFOEntity.Hibernate.DFODatabase();
-                    _altdb.Initialize(ConfigurationManager.AppSettings["AmurDFO"], 25);
-                LogManager.Log.Info("Databases succesfully initialized");
+                _maindb.Initialize(ConfigurationManager.AppSettings["AmurMain"], 25);
+                LogManager.Log.Info("Database main succesfully initialized");
             }
             catch (Exception Exc)
             {
-                LogManager.Log.Error("Error initializing databases:");
+                LogManager.Log.Error("Error initializing main database:");
+                LogManager.Log.Error(Exc.ToString());
+            }
+        }
+        private static void InitAlt()
+        {
+            try
+            {
+                _altdb = new DFOEntity.Hibernate.DFODatabase();
+                _altdb.Initialize(ConfigurationManager.AppSettings["AmurDFO"], 25);
+                LogManager.Log.Info("Database alt succesfully initialized");
+            }
+            catch (Exception Exc)
+            {
+                LogManager.Log.Error("Error initializing alt database:");
                 LogManager.Log.Error(Exc.ToString());
             }
         }
 
         public static void CloseConnections()
         {
-            _maindb.Drop();
-            _altdb.Drop();
+            if (_maindb != null)
+                _maindb.Drop();
+            if (_altdb != null)
+                _altdb.Drop();
         }
 
-        public static ISessionFactory AmurFerhri { get { return _maindb.SessionFactory; } }
-        public static ISessionFactory AmurDFO { get { return _altdb.SessionFactory; } }
+        public static ISessionFactory AmurFerhri { 
+            get 
+            {
+                if (_maindb == null || _maindb.SessionFactory.IsClosed)
+                    InitMain();
+                return _maindb.SessionFactory; 
+            } 
+        }
+        public static ISessionFactory AmurDFO {
+            get 
+            {
+                if (_altdb == null || _altdb.SessionFactory.IsClosed)
+                    InitAlt();
+                return _altdb.SessionFactory; 
+            } 
+        }
     }
 }
