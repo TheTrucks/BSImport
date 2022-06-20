@@ -10,6 +10,7 @@ namespace BSImport
     public class Restrictor
     {
         private Dictionary<int, HashSet<string>> _Restrictions;
+        private HashSet<string> _WholeList;
         public Restrictor(string Filename)
         {
             Update(Filename);
@@ -17,6 +18,7 @@ namespace BSImport
         public void Update(string Filename)
         {
             _Restrictions = new Dictionary<int, HashSet<string>>();
+            _WholeList = new HashSet<string>();
 
             using (var FS = File.Open(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Filename), FileMode.Open))
             {
@@ -42,6 +44,7 @@ namespace BSImport
                                 if (!_Restrictions.ContainsKey(CurrentVar))
                                     _Restrictions.Add(CurrentVar, new HashSet<string>());
                                 _Restrictions[CurrentVar].Add(TheLine);
+                                _WholeList.Add(TheLine);
                             }
                             else
                                 continue;
@@ -57,6 +60,10 @@ namespace BSImport
                 if (_Restrictions[StationType].Contains(Code))
                     return true;
             return false;
+        }
+        public string[] StationsList()
+        {
+            return _WholeList.ToArray();
         }
     }
 }

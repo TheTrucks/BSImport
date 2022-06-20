@@ -82,9 +82,12 @@ namespace BSImport
             LogManager.Log.Info("#########");
             LogManager.Log.Info($"Starting import from {Since.ToString("yyyy-MM-dd HH:mm")} to {To.ToString("yyyy-MM-dd HH:mm")}");
             List<FHR.Data.DataValue> InitialDVList;
+            ILookup<int, FHR.Meta.SiteAttrValue> FHRAttrValues;
+            var StationsRestrict = new Restrictor(RestrictsFilename);
             using (var MainSession = ConnectionManager.AmurFerhri.OpenSession())
             {
-                InitialDVList = AmurMainWorker.LoadMeteoData(MainSession, Since, To, _VarStationType.Keys.ToArray());
+                InitialDVList = AmurMainWorker.LoadMeteoData(MainSession, Since, To, _VarStationType.Keys.ToArray(), StationsRestrict.StationsList());
+                FHRAttrValues = AmurMainWorker.LoadSiteAttr(MainSession, StationsRestrict.StationsList());
                 LogManager.Log.Info($"Loaded {InitialDVList.Count} DV from AmurMain");
             }
             if (InitialDVList.Count == 0)
@@ -103,7 +106,7 @@ namespace BSImport
                 {
                     List<DFO.MeteoData> CurrentDataList = AmurDFOWorker.MeteoDataList(AltSession, Since, To);
 
-                    TransmuteData Transmuted = Transmute(InitialDVList, StationList);
+                    TransmuteData Transmuted = Transmute(InitialDVList, StationList, FHRAttrValues, StationsRestrict);
                     List<DFO.MeteoData> FHRtoDFO = Transmuted.TransmutedData;
 
                     int NewStationsDataCounter = 0;
@@ -123,7 +126,7 @@ namespace BSImport
                                 TempNewStation.MeteoData.Add(TransmuteOne(MData, TempNewStation));
                                 NewStationsDataCounter++;
                             }
-                            AddOptAttrs(TempNewStation, NewStationData.First().Catalog.Site.AttrValues.OrderByDescending(x => x.DateS));
+                            AddOptAttrs(TempNewStation, FHRAttrValues[NewStationData.First().Catalog.Site.Id.Value].OrderByDescending(x => x.DateS));
                             AltSession.Update(TempNewStation);
                         }
                     }
@@ -196,14 +199,13 @@ namespace BSImport
         /// <param name="InputList">FHR DB data list</param>
         /// <param name="StationFilter">DFO DB stations list</param>
         /// <returns>Converted data list and key-value list with key = station to add in DFO DB and value is its data list</returns>
-        private TransmuteData Transmute (List<FHR.Data.DataValue> InputList, List<DFO.Station> StationFilter)
+        private TransmuteData Transmute (List<FHR.Data.DataValue> InputList, List<DFO.Station> StationFilter, ILookup<int, FHR.Meta.SiteAttrValue> AttrList, Restrictor StationsRestrict)
         {
             HashSet<int> NewStationsHash = new HashSet<int>();
             List<FHR.Data.DataValue> NewStationsData = new List<FHR.Data.DataValue>();
             ILookup<DFO.Station, FHR.Data.DataValue> NewStations = null;
             var StationComparer = new DFOStationComparer();
             var CatalogComparer = new FHRCatalogComparer();
-            var StationsRestrict = new Restrictor(RestrictsFilename);
 
             HashSet<ValueTuple<string, int>> StationsHash = new HashSet<ValueTuple<string, int>>();
             foreach (var Station in StationFilter)
@@ -229,7 +231,7 @@ namespace BSImport
 
             if (NewStationsData.Count > 0)
             {
-                NewStations = NewStationsData.ToLookup(key => CreateDFOStation(key), StationComparer);
+                NewStations = NewStationsData.ToLookup(key => CreateDFOStation(key, AttrList), StationComparer);
             }
 
             return new TransmuteData(Result, NewStations);
@@ -250,7 +252,7 @@ namespace BSImport
             }
             return Result;
         }
-        private DFO.Station CreateDFOStation(FHR.Data.DataValue Input)
+        private DFO.Station CreateDFOStation(FHR.Data.DataValue Input, ILookup<int, FHR.Meta.SiteAttrValue> AttrList)
         {
             try
             {
@@ -259,7 +261,7 @@ namespace BSImport
                     LogManager.Log.Error($"No AddrRegion for station [{Input.Catalog.Site.Station.Id.Value}] {Input.Catalog.Site.Station.Name}");
                     throw new ArgumentNullException("No AddrRegion");
                 }
-                var SiteAttr = Input.Catalog.Site.AttrValues.OrderByDescending(x => x.DateS);
+                var SiteAttr = AttrList[Input.Catalog.Site.Id.Value].OrderByDescending(x => x.DateS);
                 var NewStation = new DFO.Station
                 {
                     Altitude = GetAttrValue(SiteAttr, 1006),
@@ -291,26 +293,29 @@ namespace BSImport
         /// <param name="AttrList">FHR DB attributes from the corresponding station</param>
         private void AddOptAttrs(DFO.Station Station, IEnumerable<FHR.Meta.SiteAttrValue> AttrList)
         {
-            Station.AttrValues = new List<DFO.AttrValue>();
-            foreach (var AttrType in new int[] { 1087, 1088, 1089 })
+            if (AttrList.Count() > 0)
             {
-                var NewAttr = GetAttrString(AttrList, AttrType);
-                if (!String.IsNullOrEmpty(NewAttr))
-                    Station.AttrValues.Add(
-                        new DFO.AttrValue
-                        {
-                            Attribute = new DFO.Attr
+                Station.AttrValues = new List<DFO.AttrValue>();
+                foreach (var AttrType in new int[] { 1087, 1088, 1089 })
+                {
+                    var NewAttr = GetAttrString(AttrList, AttrType);
+                    if (!String.IsNullOrEmpty(NewAttr))
+                        Station.AttrValues.Add(
+                            new DFO.AttrValue
                             {
-                                Id = AttrType
-                            },
-                            DateStart = DateTime.UtcNow,
-                            Station = new DFO.Station
-                            {
-                                Id = Station.Id
-                            },
-                            Value = NewAttr
-                        }
-                    );
+                                Attribute = new DFO.Attr
+                                {
+                                    Id = AttrType
+                                },
+                                DateStart = DateTime.UtcNow,
+                                Station = new DFO.Station
+                                {
+                                    Id = Station.Id
+                                },
+                                Value = NewAttr
+                            }
+                        );
+                }
             }
         }
         private string GetAttrString(IEnumerable<FHR.Meta.SiteAttrValue> AttrList, int AttrType)

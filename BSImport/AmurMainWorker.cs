@@ -13,16 +13,23 @@ namespace BSImport
 {
     public static class AmurMainWorker
     {
-        public static List<DataValue> LoadMeteoData(ISession session, DateTime Since, DateTime To, int[] MeteoVars)
+        public static List<DataValue> LoadMeteoData(ISession session, DateTime Since, DateTime To, int[] MeteoVars, string[] Codes)
         {
-            var DataQuery = session.Query<DataValue>()
-                    .Where(x => MeteoVars.Contains(x.Catalog.Variable.Id.Value) && new int[] { 1, 2 }.Contains(x.Catalog.Site.Type.Id.Value) && x.DateUTC >= Since && x.DateUTC < To)
+            return session.Query<DataValue>()
+                    .Where(x => MeteoVars.Contains(x.Catalog.Variable.Id.Value) 
+                        && new int[] { 1, 2 }.Contains(x.Catalog.Site.Type.Id.Value) 
+                        && Codes.Contains(x.Catalog.Site.Station.Code)
+                        && x.DateUTC >= Since && x.DateUTC < To)
                     .Fetch(x => x.Catalog)
-                    .ThenFetch(x => x.Site);
-            DataQuery.ThenFetch(x => x.Station).ToFuture();
-            DataQuery.ThenFetchMany(x => x.AttrValues).ToFuture(); // not optimal, still ok.
+                    .ThenFetch(x => x.Site)
+                    .ThenFetch(x => x.Station).ToList();
+        }
 
-            return DataQuery.ToFuture().ToList();
+        public static ILookup<int, SiteAttrValue> LoadSiteAttr(ISession session, string[] Codes)
+        {
+            return session.Query<SiteAttrValue>()
+                .Where(x => Codes.Contains(x.Entity.Station.Code))
+                .ToLookup(x => x.Entity.Id.Value);
         }
     }
 }
