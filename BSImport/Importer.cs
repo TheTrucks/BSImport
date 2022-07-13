@@ -86,7 +86,7 @@ namespace BSImport
             var StationsRestrict = new Restrictor(RestrictsFilename);
             using (var MainSession = ConnectionManager.AmurFerhri.OpenSession())
             {
-                InitialDVList = AmurMainWorker.LoadMeteoData(MainSession, Since, To, _VarStationType.Keys.ToArray(), StationsRestrict.StationsList());
+                InitialDVList = AmurMainWorker.LoadMeteoData(MainSession, Since, To, _VarStationType.Keys.ToArray(), StationsRestrict.RestrictedTypes(), StationsRestrict.StationsList());
                 FHRAttrValues = AmurMainWorker.LoadSiteAttr(MainSession, StationsRestrict.StationsList());
                 LogManager.Log.Info($"Loaded {InitialDVList.Count} DV from AmurMain");
             }
@@ -215,15 +215,16 @@ namespace BSImport
             foreach (var InputGroup in InputList.GroupBy(x => x.Catalog, CatalogComparer))
             {
                 var Input = InputGroup.Key;
-                if (!StationsRestrict.Approved(Input.Site.Station.Code, GetStationType(Input.Variable.Id.Value)))
+                var InputStationType = GetStationType(Input, StationsRestrict.IsStrong(Input.Site.Type.Id.Value));
+                if (!StationsRestrict.Approved(Input.Site.Station.Code, InputStationType))
                     continue;
 
                 var FilteredData = FilterOnItself(InputGroup.ToList());
-                if (!StationsHash.Contains(new ValueTuple<string, int>(Input.Site.Station.Code, GetStationType(Input.Variable.Id.Value))))
+                if (!StationsHash.Contains(new ValueTuple<string, int>(Input.Site.Station.Code, InputStationType)))
                     NewStationsData.AddRange(FilteredData);
                 else
                 {
-                    var TmpDFOStation = StationFilter.First(x => x.Code == Input.Site.Station.Code && x.StationType.Id == GetStationType(Input.Variable.Id.Value));
+                    var TmpDFOStation = StationFilter.First(x => x.Code == Input.Site.Station.Code && x.StationType.Id == InputStationType);
                     foreach (var DataItem in FilteredData)
                         Result.Add(TransmuteOne(DataItem, TmpDFOStation));
                 }
@@ -231,7 +232,11 @@ namespace BSImport
 
             if (NewStationsData.Count > 0)
             {
-                NewStations = NewStationsData.ToLookup(key => CreateDFOStation(key, AttrList), StationComparer);
+                NewStations = NewStationsData.ToLookup(key => CreateDFOStation(
+                    key, 
+                    AttrList, 
+                    StationsRestrict.IsStrong(key.Catalog.Site.Type.Id.Value)), 
+                    StationComparer);
             }
 
             return new TransmuteData(Result, NewStations);
@@ -252,7 +257,7 @@ namespace BSImport
             }
             return Result;
         }
-        private DFO.Station CreateDFOStation(FHR.Data.DataValue Input, ILookup<int, FHR.Meta.SiteAttrValue> AttrList)
+        private DFO.Station CreateDFOStation(FHR.Data.DataValue Input, ILookup<int, FHR.Meta.SiteAttrValue> AttrList, bool IsStrong)
         {
             try
             {
@@ -271,7 +276,7 @@ namespace BSImport
                     Name = Input.Catalog.Site.Station.Name,
                     StationType = new DFO.StationType
                     {
-                        Id = GetStationType(Input.Catalog.Variable.Id.Value)
+                        Id = GetStationType(Input.Catalog, IsStrong)
                     },
                     Region = new DFO.Addr
                     {
@@ -336,7 +341,7 @@ namespace BSImport
         /// Transmutes meteo data from FHR DB to corresponding DFO DB meteo data
         /// </summary>
         /// <param name="Input">FHR DB data to transmute</param>
-        /// <param name="Station">DFO DB meteo station for which the data is intented</param>
+        /// <param name="Station">DFO DB meteo station for which the data is intended</param>
         /// <returns>Transmuted DFO DB meteo data</returns>
         private DFO.MeteoData TransmuteOne(FHR.Data.DataValue Input, DFO.Station Station)
         {
@@ -360,10 +365,12 @@ namespace BSImport
                 Value = Input.Value
             };
         }
-        private int GetStationType(int VarID)
+        private int GetStationType(FHR.Data.Catalog Input, bool IsStrong)
         {
             int Result;
-            if (!_VarStationType.TryGetValue(VarID, out Result))
+            if (IsStrong)
+                Result = Input.Site.Type.Id.Value;
+            else if (!_VarStationType.TryGetValue(Input.Variable.Id.Value, out Result))
                 Result = -1;
             return Result;
         }

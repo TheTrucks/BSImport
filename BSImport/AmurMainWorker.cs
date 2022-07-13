@@ -13,11 +13,11 @@ namespace BSImport
 {
     public static class AmurMainWorker
     {
-        public static List<DataValue> LoadMeteoData(ISession session, DateTime Since, DateTime To, int[] MeteoVars, string[] Codes)
+        public static List<DataValue> LoadMeteoData(ISession session, DateTime Since, DateTime To, int[] MeteoVars, int[] SiteTypes, string[] Codes)
         {
             return session.Query<DataValue>()
                     .Where(x => MeteoVars.Contains(x.Catalog.Variable.Id.Value) 
-                        && new int[] { 1, 2 }.Contains(x.Catalog.Site.Type.Id.Value) 
+                        && SiteTypes.Contains(x.Catalog.Site.Type.Id.Value) 
                         && Codes.Contains(x.Catalog.Site.Station.Code)
                         && x.DateUTC >= Since && x.DateUTC < To)
                     .Fetch(x => x.Catalog)
