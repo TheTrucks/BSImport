@@ -216,7 +216,7 @@ namespace BSImport
             {
                 var Input = InputGroup.Key;
                 var InputStationType = GetStationType(Input, StationRestrictor.IsStrong(Input.Site.Type.Id.Value, Input.Site.Station.Code));
-                if (!StationRestrictor.Approved(Input.Site.Station.Code, InputStationType))
+                if (!StationRestrictor.Approved(Input.Site.Station.Code, Input.Site.Type.Id.Value))
                     continue;
 
                 var FilteredData = FilterOnItself(InputGroup.ToList());

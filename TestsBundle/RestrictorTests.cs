@@ -12,11 +12,24 @@ namespace TestsBundle
         [TestMethod]
         public void DbRestrictorTest()
         {
+
+            var DbRestrReader = new BSImport.Restrictor.DatabaseRestrictsUpdater(BSImport.ConnectionManager.AmurDFO, new int[] { -1 });
+            var DbRestrictor = new BSImport.Restrictor.Restrictor<ISessionFactory>(DbRestrReader);
+            RestrictorTest(DbRestrictor);
+        }
+
+        [TestMethod]
+        public void FileRestrictorTest()
+        {
+            var FileResrtReader = new BSImport.Restrictor.FileRestrictsUpdater("restricts.ff");
+            var FileRestrictor = new BSImport.Restrictor.Restrictor<string>(FileResrtReader);
+            RestrictorTest(FileRestrictor);
+        }
+
+        public void RestrictorTest<T>(BSImport.Restrictor.Restrictor<T> TheRestrictor)
+        {
             using (var session = BSImport.ConnectionManager.AmurDFO.OpenSession())
             {
-                var DbRestrReader = new BSImport.Restrictor.DatabaseRestrictsUpdater(BSImport.ConnectionManager.AmurDFO, new int[] { -1 });
-                var DbRestrictor = new BSImport.Restrictor.Restrictor<ISessionFactory>(DbRestrReader);
-
                 var RawDbData = session.Query<BSImport.DFOEntity.Entity.ImportStation>().ToList();
                 if (RawDbData.Count < 1)
                     throw new Exception("No import stations data found in the DB");
@@ -26,19 +39,19 @@ namespace TestsBundle
 
                 if (StrongRawDbData.Count > 0)
                 {
-                    for (int i = 0; i < 10; i++)
+                    for (int i = 0; i < StrongRawDbData.Count; i++)
                     {
-                        var TmpStation = StrongRawDbData[Randy.Next(0, StrongRawDbData.Count - 1)];
-                        Assert.IsTrue(DbRestrictor.IsStrong(TmpStation.StationType, TmpStation.Code));
+                        var TmpStation = StrongRawDbData[i];
+                        Assert.IsTrue(TheRestrictor.IsStrong(TmpStation.StationType, TmpStation.Code));
                     }
                 }
 
                 if (WeakRawDbData.Count > 0)
                 {
-                    for (int i = 0; i < 10; i++)
+                    for (int i = 0; i < WeakRawDbData.Count; i++)
                     {
-                        var TmpStation = WeakRawDbData[Randy.Next(0, WeakRawDbData.Count - 1)];
-                        Assert.IsFalse(DbRestrictor.IsStrong(TmpStation.StationType, TmpStation.Code));
+                        var TmpStation = WeakRawDbData[i];
+                        Assert.IsFalse(TheRestrictor.IsStrong(TmpStation.StationType, TmpStation.Code));
                     }
                 }
 
@@ -47,7 +60,7 @@ namespace TestsBundle
                     for (int i = 0; i < 50; i++)
                     {
                         var TmpStation = RawDbData[Randy.Next(0, RawDbData.Count - 1)];
-                        Assert.IsTrue(DbRestrictor.Approved(TmpStation.Code, TmpStation.StationType));
+                        Assert.IsTrue(TheRestrictor.Approved(TmpStation.Code, TmpStation.StationType));
                     }
                 }
             }
