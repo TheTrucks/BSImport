@@ -109,12 +109,14 @@
     <Compile Include="DFOEntity\Entity\MeteoData.cs" />
     <Compile Include="DFOEntity\Entity\OffsetType.cs" />
     <Compile Include="DFOEntity\Entity\Station.cs" />
+    <Compile Include="DFOEntity\Entity\ImportStation.cs" />
     <Compile Include="DFOEntity\Entity\StationType.cs" />
     <Compile Include="DFOEntity\Entity\VarCode.cs" />
     <Compile Include="DFOEntity\Entity\Variable.cs" />
     <Compile Include="DFOEntity\Hibernate\DFODatabase.cs" />
     <Compile Include="DFOEntity\Mappings\AddrTypeMap.cs" />
     <Compile Include="DFOEntity\Mappings\AttributeMap.cs" />
+    <Compile Include="DFOEntity\Mappings\ImportStationMap.cs" />
     <Compile Include="DFOEntity\Mappings\StationTypeMap.cs" />
     <Compile Include="DFOEntity\Mappings\StationMap.cs" />
     <Compile Include="DFOEntity\Mappings\AttrValueMap.cs" />

@@ -1,19 +1,22 @@
 ﻿using System;
 using BSImport;
+using BSImport.Restrictor;
 
 namespace ConsoleStart
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
-            string ParamsFile = InputFilename("Enter file name containing parameters list (leave empty to default on 'params.ff')", "params.ff");
+            string ParamsFile = InputFilename("Enter file name containing parameters list\r\n(leave empty to default on 'params.ff')", "params.ff");
 
-            string StationsFile = InputFilename("Enter file name containing stations list (leave empty to default on 'restricts.ff')", "restricts.ff");
+            string StationsFile = InputFilename("Enter file name containing stations list\r\n(leave empty to default on 'restricts.ff')", "restricts.ff");
 
-            string StartTime = InputDateTime("Enter start date in format \"yyyy-MM-dd HH:mm\" (leave empty to default on current UTC time - 1 hour");
+            string StartTime = InputDateTime("Enter start date in format \"yyyy-MM-dd HH:mm\"\r\n(leave empty to default on current UTC time - 1 hour");
 
-            var Imp = new Importer(ParamsFile, StationsFile, "nullcache", 1);
+            var RestrUpd = new FileRestrictsUpdater(StationsFile);
+            var Restr = new Restrictor<string>(RestrUpd);
+            var Imp = new Importer<string>(ParamsFile, Restr, "nullcache", 1);
             Imp.StartImport(StartTime);
         }
 

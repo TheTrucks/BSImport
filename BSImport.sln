@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleStart", "ConsoleStar
 		{1CAAB07A-76E3-4596-8FE6-7377821B4BA3} = {1CAAB07A-76E3-4596-8FE6-7377821B4BA3}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestsBundle", "TestsBundle\TestsBundle.csproj", "{3785019A-6B8E-4423-B6CE-1C4B397FB653}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,6 +26,10 @@ Global
 		{7C79258E-399B-4FC9-97CA-2D4DCDF22864}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C79258E-399B-4FC9-97CA-2D4DCDF22864}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7C79258E-399B-4FC9-97CA-2D4DCDF22864}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3785019A-6B8E-4423-B6CE-1C4B397FB653}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3785019A-6B8E-4423-B6CE-1C4B397FB653}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3785019A-6B8E-4423-B6CE-1C4B397FB653}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3785019A-6B8E-4423-B6CE-1C4B397FB653}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -50,7 +50,7 @@ namespace BSImport
                     ITrigger ImportTrigger = TriggerBuilder.Create()
                         .WithIdentity(Param.Cache, "MainGroup")
                         .UsingJobData("Params", Param.Params)
-                        .UsingJobData("Stations", Param.Stations)
+                        .UsingJobData("Types", Param.Types)
                         .UsingJobData("Cache", Param.Cache)
                         .UsingJobData("Hours", Param.HoursBack)
                         .WithCronSchedule(Param.CronString)
@@ -58,11 +58,11 @@ namespace BSImport
                         .Build();
 
                     await ImportSchedule.ScheduleJob(ImportTrigger, Stopper.Token);
-                    LogManager.Log.Info($"Scheduled job with parameters: CS: {Param.CronString}, P: {Param.Params}, S: {Param.Stations}, C: {Param.Cache}");
+                    LogManager.Log.Info($"Scheduled job with parameters: CS: {Param.CronString}, P: {Param.Params}, T: {Param.Types}, C: {Param.Cache}");
                 }
                 catch (Exception Ex)
                 {
-                    LogManager.Log.Error($"Unable to add job with parameters: CS: {Param.CronString}, P: {Param.Params}, S: {Param.Stations}, C: {Param.Cache}");
+                    LogManager.Log.Error($"Unable to add job with parameters: CS: {Param.CronString}, P: {Param.Params}, T: {Param.Types}, C: {Param.Cache}");
                     LogManager.Log.Error(Ex.ToString());
                 }
             }
@@ -91,7 +91,7 @@ namespace BSImport
                             {
                                 CronString = ParamsList[0],
                                 Params = ParamsList[1],
-                                Stations = ParamsList[2],
+                                Types = ParamsList[2],
                                 Cache = ParamsList[3]
                             };
                             int Hours;
@@ -113,7 +113,7 @@ namespace BSImport
         {
             public string CronString;
             public string Params;
-            public string Stations;
+            public string Types;
             public string Cache;
             public int HoursBack;
         }

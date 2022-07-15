@@ -4,21 +4,22 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using BSImport.Restrictor;
 using FHR = EntityNH.Entity;
 using DFO = BSImport.DFOEntity.Entity;
 
 namespace BSImport
 {
-    public class Importer
+    public class Importer<T>
     {
         private Dictionary<int, int> _VarStationType;
         private CacheManager DateCache;
-        private string RestrictsFilename;
+        private Restrictor<T> StationRestrictor;
         private int HoursBack;
-        public Importer(string ParamsFilename, string RestrictsFilename, string CacheFilename, int HoursBack)
+        public Importer(string ParamsFilename, Restrictor<T> InputStationRestrictor, string CacheFilename, int HoursBack)
         {
             _VarStationType = LoadVarStationTypes(ParamsFilename);
-            this.RestrictsFilename = RestrictsFilename;
+            StationRestrictor = InputStationRestrictor;
             this.HoursBack = HoursBack;
             DateCache = new CacheManager(CacheFilename);
         }
@@ -83,11 +84,10 @@ namespace BSImport
             LogManager.Log.Info($"Starting import from {Since.ToString("yyyy-MM-dd HH:mm")} to {To.ToString("yyyy-MM-dd HH:mm")}");
             List<FHR.Data.DataValue> InitialDVList;
             ILookup<int, FHR.Meta.SiteAttrValue> FHRAttrValues;
-            var StationsRestrict = new Restrictor(RestrictsFilename);
             using (var MainSession = ConnectionManager.AmurFerhri.OpenSession())
             {
-                InitialDVList = AmurMainWorker.LoadMeteoData(MainSession, Since, To, _VarStationType.Keys.ToArray(), StationsRestrict.RestrictedTypes(), StationsRestrict.StationsList());
-                FHRAttrValues = AmurMainWorker.LoadSiteAttr(MainSession, StationsRestrict.StationsList());
+                InitialDVList = AmurMainWorker.LoadMeteoData(MainSession, Since, To, _VarStationType.Keys.ToArray(), StationRestrictor.RestrictedTypes(), StationRestrictor.StationsList());
+                FHRAttrValues = AmurMainWorker.LoadSiteAttr(MainSession, StationRestrictor.StationsList());
                 LogManager.Log.Info($"Loaded {InitialDVList.Count} DV from AmurMain");
             }
             if (InitialDVList.Count == 0)
@@ -106,7 +106,7 @@ namespace BSImport
                 {
                     List<DFO.MeteoData> CurrentDataList = AmurDFOWorker.MeteoDataList(AltSession, Since, To);
 
-                    TransmuteData Transmuted = Transmute(InitialDVList, StationList, FHRAttrValues, StationsRestrict);
+                    TransmuteData Transmuted = Transmute(InitialDVList, StationList, FHRAttrValues);
                     List<DFO.MeteoData> FHRtoDFO = Transmuted.TransmutedData;
 
                     int NewStationsDataCounter = 0;
@@ -199,7 +199,7 @@ namespace BSImport
         /// <param name="InputList">FHR DB data list</param>
         /// <param name="StationFilter">DFO DB stations list</param>
         /// <returns>Converted data list and key-value list with key = station to add in DFO DB and value is its data list</returns>
-        private TransmuteData Transmute (List<FHR.Data.DataValue> InputList, List<DFO.Station> StationFilter, ILookup<int, FHR.Meta.SiteAttrValue> AttrList, Restrictor StationsRestrict)
+        private TransmuteData Transmute (List<FHR.Data.DataValue> InputList, List<DFO.Station> StationFilter, ILookup<int, FHR.Meta.SiteAttrValue> AttrList)
         {
             HashSet<int> NewStationsHash = new HashSet<int>();
             List<FHR.Data.DataValue> NewStationsData = new List<FHR.Data.DataValue>();
@@ -215,8 +215,8 @@ namespace BSImport
             foreach (var InputGroup in InputList.GroupBy(x => x.Catalog, CatalogComparer))
             {
                 var Input = InputGroup.Key;
-                var InputStationType = GetStationType(Input, StationsRestrict.IsStrong(Input.Site.Type.Id.Value));
-                if (!StationsRestrict.Approved(Input.Site.Station.Code, InputStationType))
+                var InputStationType = GetStationType(Input, StationRestrictor.IsStrong(Input.Site.Type.Id.Value, Input.Site.Station.Code));
+                if (!StationRestrictor.Approved(Input.Site.Station.Code, InputStationType))
                     continue;
 
                 var FilteredData = FilterOnItself(InputGroup.ToList());
@@ -234,8 +234,8 @@ namespace BSImport
             {
                 NewStations = NewStationsData.ToLookup(key => CreateDFOStation(
                     key, 
-                    AttrList, 
-                    StationsRestrict.IsStrong(key.Catalog.Site.Type.Id.Value)), 
+                    AttrList,
+                    StationRestrictor.IsStrong(key.Catalog.Site.Type.Id.Value, key.Catalog.Site.Station.Code)), 
                     StationComparer);
             }
 
@@ -448,9 +448,17 @@ namespace BSImport
         {
             try
             {
-                var ImportWorker = new Importer(
+                int[] StationTypes = Details.Trigger.JobDataMap.GetString("Types")
+                    .Split(new char[] { ',' })
+                    .Select(x => Int32.Parse(x))
+                    .ToArray();
+
+                var DbRestrReader = new DatabaseRestrictsUpdater(ConnectionManager.AmurDFO, StationTypes);
+                var DbRestrictor = new Restrictor<NHibernate.ISessionFactory>(DbRestrReader);
+
+                var ImportWorker = new Importer<NHibernate.ISessionFactory>(
                     Details.Trigger.JobDataMap.GetString("Params"),
-                    Details.Trigger.JobDataMap.GetString("Stations"),
+                    DbRestrictor,
                     Details.Trigger.JobDataMap.GetString("Cache"),
                     Details.Trigger.JobDataMap.GetInt("Hours"));
                 await Task.Run(() => ImportWorker.StartImport());
