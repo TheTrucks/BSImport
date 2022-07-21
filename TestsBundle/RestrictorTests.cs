@@ -14,7 +14,7 @@ namespace TestsBundle
         {
 
             var DbRestrReader = new BSImport.Restrictor.DatabaseRestrictsUpdater(BSImport.ConnectionManager.AmurDFO, new int[] { -1 });
-            var DbRestrictor = new BSImport.Restrictor.Restrictor<ISessionFactory>(DbRestrReader);
+            var DbRestrictor = new BSImport.Restrictor.DefaultRestrictor<ISessionFactory>(DbRestrReader);
             RestrictorTest(DbRestrictor);
         }
 
@@ -22,11 +22,11 @@ namespace TestsBundle
         public void FileRestrictorTest()
         {
             var FileResrtReader = new BSImport.Restrictor.FileRestrictsUpdater("restricts.ff");
-            var FileRestrictor = new BSImport.Restrictor.Restrictor<string>(FileResrtReader);
+            var FileRestrictor = new BSImport.Restrictor.DefaultRestrictor<string>(FileResrtReader);
             RestrictorTest(FileRestrictor);
         }
 
-        public void RestrictorTest<T>(BSImport.Restrictor.Restrictor<T> TheRestrictor)
+        public void RestrictorTest<T>(BSImport.Restrictor.IRestrictor<T> TheRestrictor)
         {
             using (var session = BSImport.ConnectionManager.AmurDFO.OpenSession())
             {
