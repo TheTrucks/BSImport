@@ -14,9 +14,9 @@ namespace BSImport
     {
         private Dictionary<int, int> _VarStationType;
         private CacheManager DateCache;
-        private Restrictor<T> StationRestrictor;
+        private IRestrictor<T> StationRestrictor;
         private int HoursBack;
-        public Importer(string ParamsFilename, Restrictor<T> InputStationRestrictor, string CacheFilename, int HoursBack)
+        public Importer(string ParamsFilename, IRestrictor<T> InputStationRestrictor, string CacheFilename, int HoursBack)
         {
             _VarStationType = LoadVarStationTypes(ParamsFilename);
             StationRestrictor = InputStationRestrictor;
@@ -216,7 +216,8 @@ namespace BSImport
             {
                 var Input = InputGroup.Key;
                 var InputStationType = GetStationType(Input, StationRestrictor.IsStrong(Input.Site.Type.Id.Value, Input.Site.Station.Code));
-                if (!StationRestrictor.Approved(Input.Site.Station.Code, Input.Site.Type.Id.Value))
+                if (!(StationRestrictor.Approved(Input.Site.Station.Code, Input.Site.Type.Id.Value) && 
+                    OrigStationParamExists(Input)))
                     continue;
 
                 var FilteredData = FilterOnItself(InputGroup.ToList());
@@ -374,7 +375,11 @@ namespace BSImport
                 Result = -1;
             return Result;
         }
-
+        private bool OrigStationParamExists(FHR.Data.Catalog Input)
+        {
+            return (_VarStationType.ContainsKey(Input.Variable.Id.Value) && 
+                _VarStationType[Input.Variable.Id.Value] == Input.Site.Type.Id.Value);
+        }
         private class MeteoDataComparer : IEqualityComparer<DFO.MeteoData> // custom comparer which ignores value and id
         {
             public bool Equals(DFO.MeteoData First, DFO.MeteoData Second)
@@ -454,7 +459,7 @@ namespace BSImport
                     .ToArray();
 
                 var DbRestrReader = new DatabaseRestrictsUpdater(ConnectionManager.AmurDFO, StationTypes);
-                var DbRestrictor = new Restrictor<NHibernate.ISessionFactory>(DbRestrReader);
+                var DbRestrictor = new DefaultRestrictor<NHibernate.ISessionFactory>(DbRestrReader);
 
                 var ImportWorker = new Importer<NHibernate.ISessionFactory>(
                     Details.Trigger.JobDataMap.GetString("Params"),

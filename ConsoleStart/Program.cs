@@ -15,7 +15,7 @@ namespace ConsoleStart
             string StartTime = InputDateTime("Enter start date in format \"yyyy-MM-dd HH:mm\"\r\n(leave empty to default on current UTC time - 1 hour");
 
             var RestrUpd = new FileRestrictsUpdater(StationsFile);
-            var Restr = new Restrictor<string>(RestrUpd);
+            var Restr = new DefaultRestrictor<string>(RestrUpd);
             var Imp = new Importer<string>(ParamsFile, Restr, "nullcache", 1);
             Imp.StartImport(StartTime);
         }

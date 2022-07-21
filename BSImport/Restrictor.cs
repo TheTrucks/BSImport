@@ -131,12 +131,21 @@ namespace BSImport.Restrictor
         }
     }
 
-    public class Restrictor<T>
+    public interface IRestrictor<T>
+    {
+        void Update();
+        bool Approved(string StationCode, int StationType);
+        bool IsStrong(int AmurSiteType, string Code);
+        int[] RestrictedTypes();
+        string[] StationsList();
+    }
+
+    public class DefaultRestrictor<T> : IRestrictor<T>
     {
         private Dictionary<int, RestrictionEntry> _Restrictions;
         private HashSet<string> _WholeList;
         private BaseRestrictsUpdater<T> RestrictsReader;
-        public Restrictor(BaseRestrictsUpdater<T> InputRestrictsReader)
+        public DefaultRestrictor(BaseRestrictsUpdater<T> InputRestrictsReader)
         {
             RestrictsReader = InputRestrictsReader;
             Update();
